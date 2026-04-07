@@ -1,0 +1,23 @@
+### Create a loan
+POST http://localhost:8080/api/loans
+Content-Type: application/json
+Authorization: Bearer {{jwt}}
+
+{
+  "bookId": 1,
+  "contactName": "Ana Pérez",
+  "loanDate": "2026-03-31",
+  "dueDate": "2026-04-15"
+}
+
+### List all loans for current user
+GET http://localhost:8080/api/loans
+Authorization: Bearer {{jwt}}
+
+### Get loan details
+GET http://localhost:8080/api/loans/1
+Authorization: Bearer {{jwt}}
+
+### Return a loaned book
+PATCH http://localhost:8080/api/loans/1/return
+Authorization: Bearer {{jwt}}
