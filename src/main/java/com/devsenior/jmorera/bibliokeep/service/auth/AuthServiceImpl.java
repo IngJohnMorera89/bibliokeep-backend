@@ -1,5 +1,19 @@
 package com.devsenior.jmorera.bibliokeep.service.auth;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.devsenior.jmorera.bibliokeep.exception.InvalidRefreshTokenException;
 import com.devsenior.jmorera.bibliokeep.exception.RefreshTokenExpiredException;
 import com.devsenior.jmorera.bibliokeep.mapper.UserMapper;
@@ -11,19 +25,8 @@ import com.devsenior.jmorera.bibliokeep.model.entity.RefreshToken;
 import com.devsenior.jmorera.bibliokeep.repository.RefreshTokenRepository;
 import com.devsenior.jmorera.bibliokeep.repository.UserRepository;
 import com.devsenior.jmorera.bibliokeep.security.JwtService;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -54,7 +57,16 @@ public class AuthServiceImpl implements AuthService {
 				.orElseThrow();
 
 		var userDetails = buildUserDetails(user.getEmail(), user.getPassword());
-		var accessToken = jwtService.generateAccessToken(userDetails, Map.of());
+		
+		// Build custom claims for the JWT payload
+		var extraClaims = Map.of(
+			"userId", user.getId().toString(),
+			"email", user.getEmail(),
+			"preferences", user.getPreferences(),
+			"annualGoal", user.getAnnualGoal()
+		);
+		
+		var accessToken = jwtService.generateAccessToken(userDetails, extraClaims);
 
 		refreshTokenRepository.deleteByUserId(user.getId());
 		var refreshTokenId = UUID.randomUUID().toString();
@@ -90,7 +102,15 @@ public class AuthServiceImpl implements AuthService {
 			throw new InvalidRefreshTokenException("Refresh token inválido");
 		}
 
-		var newAccessToken = jwtService.generateAccessToken(userDetails, Map.of());
+		// Build custom claims for the JWT payload
+		var extraClaims = Map.of(
+			"userId", user.getId().toString(),
+			"email", user.getEmail(),
+			"preferences", user.getPreferences(),
+			"annualGoal", user.getAnnualGoal()
+		);
+		
+		var newAccessToken = jwtService.generateAccessToken(userDetails, extraClaims);
 		return new AuthTokensResponse(newAccessToken, token);
 	}
 
