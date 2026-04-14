@@ -2,7 +2,6 @@ package com.devsenior.jmorera.bibliokeep.mapper;
 
 import com.devsenior.jmorera.bibliokeep.model.dto.auth.RegisterRequest;
 import com.devsenior.jmorera.bibliokeep.model.entity.User;
-import java.util.HashSet;
 import java.util.Set;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -16,7 +15,7 @@ public interface UserMapper {
 	User toEntity(RegisterRequest request);
 
 	default Set<String> map(Set<String> preferences) {
-		return preferences == null ? new HashSet<>() : new HashSet<>(preferences);
+		return preferences == null ? Set.of() : Set.copyOf(preferences);
 	}
 
 	default Integer map(Integer annualGoal) {

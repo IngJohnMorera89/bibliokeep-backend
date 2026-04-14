@@ -42,10 +42,10 @@ springdoc:
 
 jwt:
   access-token:
-    secret: ${JWT_ACCESS_SECRET:change-me-access-secret}
+    secret: ${JWT_ACCESS_SECRET:4z6B8EbGaJpSdTjWnZr4u7x0A9D8GKaPdSgVkYp2s5v8yB_E_H_MbQeThWmZq4}
     expiration-minutes: 15
   refresh-token:
-    secret: ${JWT_REFRESH_SECRET:change-me-refresh-secret}
+    secret: ${JWT_REFRESH_SECRET:6D5G_KaPdSgVkYp3s6v9y_B_E_H_McQfThWmZq4t7w0z9C8F_JaNdRgUjXn2r5u8}
     expiration-days: 30
 
 logging:

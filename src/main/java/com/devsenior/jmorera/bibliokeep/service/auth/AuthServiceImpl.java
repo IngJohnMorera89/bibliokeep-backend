@@ -32,91 +32,104 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-	private final UserRepository userRepository;
-	private final RefreshTokenRepository refreshTokenRepository;
-	private final UserMapper userMapper;
-	private final PasswordEncoder passwordEncoder;
-	private final JwtService jwtService;
-	private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
-	@Override
-	@Transactional
-	public void register(RegisterRequest request) {
-		var user = userMapper.toEntity(request);
-		user.setPassword(passwordEncoder.encode(user.getPassword()));
-		userRepository.save(user);
-	}
+    @Override
+    @Transactional
+    public void register(RegisterRequest request) {
+        var user = userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        userRepository.save(user);
+    }
 
-	@Override
-	@Transactional
-	public AuthTokensResponse login(LoginRequest request) {
-		var authToken = new UsernamePasswordAuthenticationToken(request.email(), request.password());
-		authenticationManager.authenticate(authToken);
+    @Override
+    @Transactional
+    public AuthTokensResponse login(LoginRequest request) {
+        try {
+            // 1. Autenticar: Si falla, lanza AuthenticationException (401 Bad Credentials)
+            var auth = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
 
-		var user = userRepository.findByEmail(request.email())
-				.orElseThrow();
+            // 2. Obtener el usuario de la DB (necesario para el ID y preferencias)
+            var user = userRepository.findByEmail(request.email())
+                    .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado post-autenticación"));
 
-		var userDetails = buildUserDetails(user.getEmail(), user.getPassword());
-		
-		// Build custom claims for the JWT payload
-		var extraClaims = Map.of(
-			"userId", user.getId().toString(),
-			"email", user.getEmail(),
-			"preferences", user.getPreferences(),
-			"annualGoal", user.getAnnualGoal()
-		);
-		
-		var accessToken = jwtService.generateAccessToken(userDetails, extraClaims);
+            var userDetails = (UserDetails) auth.getPrincipal();
 
-		refreshTokenRepository.deleteByUserId(user.getId());
-		var refreshTokenId = UUID.randomUUID().toString();
-		var refreshToken = RefreshToken.builder()
-				.id(refreshTokenId)
-				.userId(user.getId())
-				.expiresAt(Instant.now().plus(30, ChronoUnit.DAYS))
-				.build();
-		refreshTokenRepository.save(refreshToken);
+            // 3. Construir claims (Verificando que el ID no sea nulo)
+            String userIdStr = (user.getId() != null) ? user.getId().toString() : "N/A";
+            
+            var extraClaims = Map.of(
+                "userId", userIdStr,
+                "email", user.getEmail(),
+                "preferences", (user.getPreferences() != null) ? user.getPreferences() : java.util.Collections.emptyList(),
+                "annualGoal", user.getAnnualGoal()
+            );
 
-		var refreshJwt = jwtService.generateRefreshToken(userDetails, refreshTokenId);
-		return new AuthTokensResponse(accessToken, refreshJwt);
-	}
+            // 4. Generar Tokens
+            var accessToken = jwtService.generateAccessToken(userDetails, extraClaims);
 
-	@Override
-	@Transactional(readOnly = true)
-	public AuthTokensResponse refresh(RefreshRequest request) {
-		var token = request.refreshToken();
-		var refreshTokenId = jwtService.extractRefreshTokenId(token);
-		var storedToken = refreshTokenRepository.findByIdAndRevokedFalse(refreshTokenId)
-				.orElseThrow(() -> new InvalidRefreshTokenException("Refresh token inválido o revocado"));
+            refreshTokenRepository.deleteByUserId(user.getId());
+            var refreshTokenId = UUID.randomUUID().toString();
+            var refreshTokenEntity = RefreshToken.builder()
+                    .id(refreshTokenId)
+                    .userId(user.getId())
+                    .expiresAt(Instant.now().plus(30, ChronoUnit.DAYS))
+                    .build();
+            refreshTokenRepository.save(refreshTokenEntity);
 
-		if (storedToken.getExpiresAt().isBefore(Instant.now())) {
-			throw new RefreshTokenExpiredException("Refresh token expirado");
-		}
+            var refreshJwt = jwtService.generateRefreshToken(userDetails, refreshTokenId);
 
-		var username = jwtService.extractUsernameFromRefreshToken(token);
-		var user = userRepository.findByEmail(username)
-				.orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            System.out.println("DEBUG: Login exitoso para " + request.email() + ". Tokens generados.");
+            return new AuthTokensResponse(accessToken, refreshJwt);
 
-		var userDetails = buildUserDetails(user.getEmail(), user.getPassword());
-		if (!jwtService.isRefreshTokenValid(token, userDetails)) {
-			throw new InvalidRefreshTokenException("Refresh token inválido");
-		}
+        } catch (Exception e) {
+            System.err.println("DEBUG ERROR: Error en el proceso de login: " + e.getMessage());
+            e.printStackTrace(); // Esto te dirá en consola si la clave secreta es muy corta
+            throw e;
+        }
+    }
 
-		// Build custom claims for the JWT payload
-		var extraClaims = Map.of(
-			"userId", user.getId().toString(),
-			"email", user.getEmail(),
-			"preferences", user.getPreferences(),
-			"annualGoal", user.getAnnualGoal()
-		);
-		
-		var newAccessToken = jwtService.generateAccessToken(userDetails, extraClaims);
-		return new AuthTokensResponse(newAccessToken, token);
-	}
+    @Override
+    @Transactional(readOnly = true)
+    public AuthTokensResponse refresh(RefreshRequest request) {
+        var token = request.refreshToken();
+        var refreshTokenId = jwtService.extractRefreshTokenId(token);
+        var storedToken = refreshTokenRepository.findByIdAndRevokedFalse(refreshTokenId)
+                .orElseThrow(() -> new InvalidRefreshTokenException("Refresh token inválido o revocado"));
 
-	private UserDetails buildUserDetails(String email, String password) {
-		var authorities = java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"));
-		return new User(email, password, authorities);
-	}
+        if (storedToken.getExpiresAt().isBefore(Instant.now())) {
+            throw new RefreshTokenExpiredException("Refresh token expirado");
+        }
+
+        var username = jwtService.extractUsernameFromRefreshToken(token);
+        var user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        var userDetails = buildUserDetails(user.getEmail(), user.getPassword());
+        if (!jwtService.isRefreshTokenValid(token, userDetails)) {
+            throw new InvalidRefreshTokenException("Refresh token inválido");
+        }
+
+        var extraClaims = Map.of(
+            "userId", user.getId().toString(),
+            "email", user.getEmail(),
+            "preferences", (user.getPreferences() != null) ? user.getPreferences() : java.util.Collections.emptyList(),
+            "annualGoal", user.getAnnualGoal()
+        );
+        
+        var newAccessToken = jwtService.generateAccessToken(userDetails, extraClaims);
+        return new AuthTokensResponse(newAccessToken, token);
+    }
+
+    private UserDetails buildUserDetails(String email, String password) {
+        var authorities = java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"));
+        return new User(email, password, authorities);
+    }
 }
-

@@ -97,12 +97,12 @@ public class JwtService {
 	}
 
 	private SecretKey getAccessKey() {
-		var keyBytes = Decoders.BASE64.decode(accessSecret);
+		var keyBytes = Decoders.BASE64URL.decode(accessSecret);
 		return Keys.hmacShaKeyFor(keyBytes);
 	}
 
 	private SecretKey getRefreshKey() {
-		var keyBytes = Decoders.BASE64.decode(refreshSecret);
+		var keyBytes = Decoders.BASE64URL.decode(refreshSecret);
 		return Keys.hmacShaKeyFor(keyBytes);
 	}
 }
