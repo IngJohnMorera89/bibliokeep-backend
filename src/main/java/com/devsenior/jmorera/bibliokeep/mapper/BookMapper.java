@@ -14,21 +14,25 @@ import com.devsenior.jmorera.bibliokeep.model.entity.Book;
 
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public interface BookMapper {
 
-	@Mapping(
-			target = "status",
-			expression = "java(request.status() != null ? request.status() : BookStatus.DESEADO)"
-	)
-	@Mapping(target = "authors", source = "authors")
-	Book toEntity(CreateBookRequest request);
 
-	BookPreviewDto toPreviewDto(Book book);
+	public interface BookMapper {
 
-	BookDto toDto(Book book);
+    @Mapping(
+            target = "status",
+            expression = "java(request.status() != null ? request.status() : com.devsenior.jmorera.bibliokeep.model.enums.BookStatus.DESEADO)"
+    )
+    @Mapping(target = "authors", source = "authors")
+    // AQUÍ ESTÁ LA CORRECCIÓN:
+    // Si tu CreateBookRequest tiene un nombre distinto a 'thumbnail', mapealo así:
+    // @Mapping(target = "thumbnail", source = "thumbnailUrl") 
+    Book toEntity(CreateBookRequest request);
 
-	default List<String> map(List<String> authors) {
-		return authors == null ? List.of() : List.copyOf(authors);
-	}
+    BookPreviewDto toPreviewDto(Book book);
+
+    BookDto toDto(Book book);
+
+    default List<String> map(List<String> authors) {
+        return authors == null ? List.of() : List.copyOf(authors);
+    }
 }
-
