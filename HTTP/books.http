@@ -1,7 +1,7 @@
 ### Create a new book
 POST http://localhost:8080/api/books
 Content-Type: application/json
-Authorization: Bearer {{jwt}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2hubUBnbWFpbC5jb20iLCJhbm51YWxHb2FsIjoxMCwiZW1haWwiOiJqb2hubUBnbWFpbC5jb20iLCJ1c2VySWQiOiJjNGVmMzIxMS02YmJhLTRkOTgtODQ1YS1jYWU4MDVmMWU0NzIiLCJwcmVmZXJlbmNlcyI6WyJGYW50YXPDrWEiLCJQb2Vzw61hIl0sImlhdCI6MTc3NjIyNDE5MSwiZXhwIjoxNzc2MjI1MDkxfQ.X5ai_zNE-xXzWOOPXDRco_2FPTGCnpcCwwLcXsZfZ6s
 
 {
   "isbn": "9780140449136",

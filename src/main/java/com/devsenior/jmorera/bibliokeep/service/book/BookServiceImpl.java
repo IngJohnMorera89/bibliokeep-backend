@@ -1,20 +1,22 @@
 package com.devsenior.jmorera.bibliokeep.service.book;
 
-import com.devsenior.jmorera.bibliokeep.mapper.BookMapper;
-import com.devsenior.jmorera.bibliokeep.model.dto.books.BookDto;
-import com.devsenior.jmorera.bibliokeep.model.dto.books.BookSearchResponse;
-import com.devsenior.jmorera.bibliokeep.model.dto.books.CreateBookRequest;
-import com.devsenior.jmorera.bibliokeep.model.dto.books.UpdateBookStatusRequest;
-
-import com.devsenior.jmorera.bibliokeep.repository.BookRepository;
-import com.devsenior.jmorera.bibliokeep.repository.UserRepository;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.devsenior.jmorera.bibliokeep.mapper.BookMapper;
+import com.devsenior.jmorera.bibliokeep.model.dto.books.BookDto;
+import com.devsenior.jmorera.bibliokeep.model.dto.books.BookSearchResponse;
+import com.devsenior.jmorera.bibliokeep.model.dto.books.CreateBookRequest;
+import com.devsenior.jmorera.bibliokeep.model.dto.books.UpdateBookStatusRequest;
+import com.devsenior.jmorera.bibliokeep.repository.BookRepository;
+import com.devsenior.jmorera.bibliokeep.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -90,12 +92,12 @@ public class BookServiceImpl implements BookService {
 
         var principal = authentication.getPrincipal();
         String email;
-        if (principal instanceof UserDetails userDetails) {
-            email = userDetails.getUsername();
-        } else if (principal instanceof String username) {
+        if (!(principal instanceof UserDetails userDetails)) if (principal instanceof String username) {
             email = username;
         } else {
             throw new AccessDeniedException("Unable to resolve authenticated user.");
+        } else {
+            email = userDetails.getUsername();
         }
 
         return userRepository.findByEmail(email)
