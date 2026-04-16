@@ -1,13 +1,11 @@
 spring:
   application:
     name: bibliokeep-backend
-
   datasource:
     url: jdbc:postgresql://localhost:5432/bibliokeep
     username: postgres
     password: Inge0925
     driver-class-name: org.postgresql.Driver
-
   jpa:
     open-in-view: false
     hibernate:
@@ -17,12 +15,10 @@ spring:
         format_sql: true
         jdbc:
           time_zone: UTC
-
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
@@ -40,6 +36,7 @@ springdoc:
   api-docs:
     enabled: true
 
+# Esta es la parte que corregimos para que coincida con tus @Value
 jwt:
   access-token:
     secret: ${JWT_ACCESS_SECRET:4z6B8EbGaJpSdTjWnZr4u7x0A9D8GKaPdSgVkYp2s5v8yB_E_H_MbQeThWmZq4}
@@ -48,7 +45,16 @@ jwt:
     secret: ${JWT_REFRESH_SECRET:6D5G_KaPdSgVkYp3s6v9y_B_E_H_McQfThWmZq4t7w0z9C8F_JaNdRgUjXn2r5u8}
     expiration-days: 30
 
+# Mantenemos 'app' AQUÍ porque FileController busca 'app.file...'
+app:
+  file:
+    directory: ./files/upload
+    publish-path: /public
+    cache-period: 3600
+
 logging:
   level:
     org.springframework.security: INFO
 
+google-books:
+  base-url: https://www.googleapis.com

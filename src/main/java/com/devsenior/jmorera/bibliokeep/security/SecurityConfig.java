@@ -2,6 +2,7 @@ package com.devsenior.jmorera.bibliokeep.security;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,18 +31,20 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+            @Value("${app.file.publish-path}") String publishPath) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable()) // Deshabilitado para APIs REST
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",      // Simplificado para cubrir login/register/refresh
+                                "/api/auth/**", // Simplificado para cubrir login/register/refresh
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
-                                "/swagger-ui/**"
-                        ).permitAll()
+                                "/swagger-ui/**",
+                                ("%s/**".formatted(publishPath)))
+                        .permitAll()
                         .anyRequest().authenticated() // Esto protege /api/books
                 )
                 .authenticationProvider(authenticationProvider())
@@ -54,27 +57,26 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // IMPORTANTE: Ajusta a la URL de tu frontend de Angular
-        configuration.setAllowedOrigins(List.of("http://localhost:4200")); 
+        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 
-   
-  	@Bean
-	public AuthenticationProvider authenticationProvider() {
-    // En Spring Security 7, el constructor requiere el UserDetailsService
-    DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
-    
-    // El password encoder se sigue seteando igual
-    authProvider.setPasswordEncoder(passwordEncoder()); 
-    
-    return authProvider;
-}
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        // En Spring Security 7, el constructor requiere el UserDetailsService
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
+
+        // El password encoder se sigue seteando igual
+        authProvider.setPasswordEncoder(passwordEncoder());
+
+        return authProvider;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -86,4 +88,3 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 }
-
