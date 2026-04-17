@@ -1,10 +1,11 @@
-###
+### Enviar archivo a BiblioKeep
 POST http://localhost:8080/api/file/upload
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huQGdtYWlsLmNvbSIsImFubnVhbEdvYWwiOjI0LCJlbWFpbCI6ImpvaG5AZ21haWwuY29tIiwidXNlcklkIjoiMTI5NmJjMDYtZmUxMy00ZmQ4LTkzMDQtMGMxNThhODk0NWI2IiwicHJlZmVyZW5jZXMiOlsiZmljdGlvbiIsImhpc3RvcnkiXSwiaWF0IjoxNzc2MzczNzIzLCJleHAiOjE3NzYzNzQ2MjN9.XaNOTwdFpTa_nKFK-h_9yJ1AolakGqFaM7cbZYqLPo4
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryMiArchivo
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huQGdtYWlsLmNvbSIsInVzZXJJZCI6IjAwNTEzZDgyLTJhZjAtNDJjZi04NmU5LTQwNGUwNmExNDUwOSIsInByZWZlcmVuY2VzIjpbImZpY3Rpb24iLCJoaXN0b3J5Il0sImFubnVhbEdvYWwiOjI0LCJlbWFpbCI6ImpvaG5AZ21haWwuY29tIiwiaWF0IjoxNzc2Mzg2MDE1LCJleHAiOjE3NzYzODY5MTV9.vity7Q5EgNp-9YO05YqaW4lvoOrrSApSfyBb6XC97eY
+Content-Type: multipart/form-data; boundary=WebAppBoundary
 
-------WebKitFormBoundaryMiArchivo
+--WebAppBoundary
 Content-Disposition: form-data; name="file"; filename="imgtest.jpg"
+Content-Type: image/jpeg
 
 < ./imgtest.jpg
- ------WebKitFormBoundaryMiArchivo--
+--WebAppBoundary--
