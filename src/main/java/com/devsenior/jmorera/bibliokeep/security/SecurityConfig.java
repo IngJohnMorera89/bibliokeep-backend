@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,6 +32,13 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
 
     @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        // Esto hace que Spring Security ignore COMPLETAMENTE estas rutas,
+        // permitiendo que WebConfig maneje las imágenes sin pedir tokens.
+        return (web) -> web.ignoring().requestMatchers("/public/**", "/swagger-ui/**", "/v3/api-docs/**");
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
             @Value("${app.file.publish-path}") String publishPath) throws Exception {
         http
@@ -43,7 +51,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
+                                "/public/**",
                                 ("%s/**".formatted(publishPath)))
+
                         .permitAll()
                         .anyRequest().authenticated() // Esto protege /api/books
                 )

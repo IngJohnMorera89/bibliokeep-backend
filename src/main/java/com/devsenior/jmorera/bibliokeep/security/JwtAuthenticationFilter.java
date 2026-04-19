@@ -1,19 +1,22 @@
 package com.devsenior.jmorera.bibliokeep.security;
 
-import com.devsenior.jmorera.bibliokeep.service.auth.CustomUserDetailsService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.devsenior.jmorera.bibliokeep.service.auth.CustomUserDetailsService;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
@@ -26,8 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(
 			HttpServletRequest request,
 			HttpServletResponse response,
-			FilterChain filterChain
-	) throws ServletException, IOException {
+			FilterChain filterChain) throws ServletException, IOException {
 
 		var authHeader = Optional.ofNullable(request.getHeader(HttpHeaders.AUTHORIZATION));
 		if (authHeader.isEmpty() || !authHeader.get().startsWith("Bearer ")) {
@@ -44,8 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				var authToken = new UsernamePasswordAuthenticationToken(
 						userDetails,
 						null,
-						userDetails.getAuthorities()
-				);
+						userDetails.getAuthorities());
 				authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 				SecurityContextHolder.getContext().setAuthentication(authToken);
 			}
@@ -54,4 +55,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		filterChain.doFilter(request, response);
 	}
 }
-
