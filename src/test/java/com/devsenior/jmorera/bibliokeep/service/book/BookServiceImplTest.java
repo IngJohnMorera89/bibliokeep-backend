@@ -1,45 +1,152 @@
 package com.devsenior.jmorera.bibliokeep.service.book;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import com.devsenior.jmorera.bibliokeep.mapper.BookMapper;
+import com.devsenior.jmorera.bibliokeep.model.dto.books.BookSearchResponse;
+import com.devsenior.jmorera.bibliokeep.model.dto.books.CreateBookRequest;
+import com.devsenior.jmorera.bibliokeep.model.entity.Book;
+import com.devsenior.jmorera.bibliokeep.model.entity.User;
+import com.devsenior.jmorera.bibliokeep.model.enums.BookStatus;
 import com.devsenior.jmorera.bibliokeep.repository.BookRepository;
 import com.devsenior.jmorera.bibliokeep.repository.UserRepository;
 
 public class BookServiceImplTest {
 
+    private BookRepository bookRepositoryMock;
+    private UserRepository userRepositoryMock;
+    private BookMapper bookMapperMock;
+    private BookServiceImpl bookService;
+
+    @BeforeEach
+    void init() {
+        bookRepositoryMock = mock(BookRepository.class);
+        userRepositoryMock = mock(UserRepository.class);
+        bookMapperMock = mock(BookMapper.class);
+        bookService = new BookServiceImpl(bookRepositoryMock, userRepositoryMock, bookMapperMock);
+    }
+
     // BDD Style : should<R>_When<c>()
     @Test
     void shouldPersistBook_whenCorrectData() {
         // Given
-        var bookRepositoryMock = Mockito.mock(BookRepository.class);
-        var userRepository = Mockito.mock(UserRepository.class);
-        var bookMapper = Mockito.mock(BookMapper.class);
-        var bookService = new BookServiceImpl(bookRepositoryMock, userRepository, bookMapper);
-        // When
-        var reqest = k(new CreateBookRequest("Title", "1234567890", 2022, "Author", Genre.FICTION));
+        var mockUser = new User();
+        when(userRepositoryMock.findById(any(UUID.class))).thenReturn(Optional.of(mockUser));
+
+        var mockBook = new Book();
+        when(bookMapperMock.toEntity(any(CreateBookRequest.class))).thenReturn(mockBook);
+
+        var mockBookResponse = mockedBookResponse();
+        when(bookMapperMock.toResponse(any(Book.class)))
+                .thenReturn(mockBookResponse);
+
+        var request = mockedBookRequest();
+        var ownerId = mockedOwnerId();
+
+         // When
+        var result = bookService.createBook(request, ownerId);
+
         // Then
         assertNotNull(result);
     }
 
     @Test
-    void testFindAll() {
+    void shouldThrowResourceNotFoundException_WhenOwnerIdNotExist() {
+        // Arrange
+        when(userRepositoryMock.findById(any(UUID.class)))
+                .thenReturn(Optional.empty());
 
+        var request = mockedBookRequest();
+        var ownerId = mockedOwnerId();
+
+        // Act & Assert
+        assertThrows(ResourceNotFoundException.class,
+                () -> bookService.createBook(request, ownerId));
     }
 
     @Test
-    void testFindById() {
+    void shouldThrowBadRequestException_WhenOwnerAlreadyHasTheBook() {
+        // Arrange
+        var mockedUser = new User();
+        when(userRepositoryMock.findById(any(UUID.class)))
+                .thenReturn(Optional.of(mockedUser));
 
+        var mockedBook = new Book();
+        when(bookRepositoryMock.findByOwnerIdAndIsbn(any(UUID.class), anyString()))
+                .thenReturn(Optional.of(mockedBook));
+
+        var request = mockedBookRequest();
+        var ownerId = mockedOwnerId();
+
+        // Act & Assert
+        assertThrows(BadRequestException.class,
+                () -> bookService.createBook(request, ownerId));
     }
 
     @Test
-    void testSearchBooks() {
+    void shouldUpdateBookStatus_WhenCorrectData() {
+        // Arrage
+        var mockedId = 1L;
+        var ownerId = mockedOwnerId();
 
+        var mockedOwner = new User();
+        mockedOwner.setId(ownerId);
+
+        var mockedBook = new Book();
+        mockedBook.setOwner(mockedOwner);
+        when(bookRepositoryMock.findById(mockedId))
+                .thenReturn(Optional.of(mockedBook));
+
+        when(bookRepositoryMock.save(any(Book.class)))
+                .thenReturn(mockedBook);
+
+        var response = new BookResponse(1L, "123456789", "Test Book",
+                List.of("Test Author"), "Test Description",
+                "http://test.com/test.png", BookStatus.LEIDO,
+                1, false);
+        when(bookMapperMock.toResponse(any(Book.class)))
+                .thenReturn(response);
+
+        // Act
+        var result = bookService.updateBookStatus(mockedId, BookStatus.LEIDO, ownerId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(BookStatus.LEIDO, result.status());
     }
 
-    @Test
-    void testUpdateBookStatus() {
-
+    private CreateBookRequest mockedBookRequest() {
+        return new CreateBookRequest("123456789", "Test Book",
+                List.of("Test Author"), "Test Description",
+                "http://test.com/test.png", BookStatus.DESEADO, 1);
     }
+
+    private BookSearchResponse mockedBookResponse() {
+        return new BookSearchResponse(1L, "123456789", "Test Book",
+                List.of("Test Author"), "Test Description",
+                "http://test.com/test.png", BookStatus.DESEADO,
+                1, false);
+    }
+
+    private UUID mockedOwnerId() {
+        return UUID.fromString("11111111-2222-3333-4444-555555555555");
+    }
+
+
+       
+}
 }
