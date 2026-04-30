@@ -92,11 +92,13 @@ public class BookServiceImpl implements BookService {
 
         var principal = authentication.getPrincipal();
         String email;
-        if (!(principal instanceof UserDetails userDetails)) if (principal instanceof String username) {
-            email = username;
-        } else {
-            throw new AccessDeniedException("Unable to resolve authenticated user.");
-        } else {
+        if (!(principal instanceof UserDetails userDetails))
+            if (principal instanceof String username) {
+                email = username;
+            } else {
+                throw new AccessDeniedException("Unable to resolve authenticated user.");
+            }
+        else {
             email = userDetails.getUsername();
         }
 

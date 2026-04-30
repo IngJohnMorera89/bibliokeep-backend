@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -14,11 +15,14 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.devsenior.jmorera.bibliokeep.mapper.BookMapper;
-import com.devsenior.jmorera.bibliokeep.model.dto.books.BookSearchResponse;
+import com.devsenior.jmorera.bibliokeep.model.dto.books.BookDto;
 import com.devsenior.jmorera.bibliokeep.model.dto.books.CreateBookRequest;
+import com.devsenior.jmorera.bibliokeep.model.dto.books.UpdateBookStatusRequest;
 import com.devsenior.jmorera.bibliokeep.model.entity.Book;
 import com.devsenior.jmorera.bibliokeep.model.entity.User;
 import com.devsenior.jmorera.bibliokeep.model.enums.BookStatus;
@@ -27,126 +31,152 @@ import com.devsenior.jmorera.bibliokeep.repository.UserRepository;
 
 public class BookServiceImplTest {
 
-    private BookRepository bookRepositoryMock;
-    private UserRepository userRepositoryMock;
-    private BookMapper bookMapperMock;
-    private BookServiceImpl bookService;
+        private BookRepository bookRepositoryMock;
+        private UserRepository userRepositoryMock;
+        private BookMapper bookMapperMock;
+        private BookServiceImpl bookService;
 
-    @BeforeEach
-    void init() {
-        bookRepositoryMock = mock(BookRepository.class);
-        userRepositoryMock = mock(UserRepository.class);
-        bookMapperMock = mock(BookMapper.class);
-        bookService = new BookServiceImpl(bookRepositoryMock, userRepositoryMock, bookMapperMock);
-    }
+        private Authentication authenticationMock;
+        private SecurityContext securityContextMock;
 
-    // BDD Style : should<R>_When<c>()
-    @Test
-    void shouldPersistBook_whenCorrectData() {
-        // Given
-        var mockUser = new User();
-        when(userRepositoryMock.findById(any(UUID.class))).thenReturn(Optional.of(mockUser));
+        @BeforeEach
+        void init() {
+                bookRepositoryMock = mock(BookRepository.class);
+                userRepositoryMock = mock(UserRepository.class);
+                bookMapperMock = mock(BookMapper.class);
+                bookService = new BookServiceImpl(bookRepositoryMock, userRepositoryMock, bookMapperMock);
 
-        var mockBook = new Book();
-        when(bookMapperMock.toEntity(any(CreateBookRequest.class))).thenReturn(mockBook);
+                authenticationMock = mock(Authentication.class);
+                securityContextMock = mock(SecurityContext.class);
+                SecurityContextHolder.setContext(securityContextMock);
+        }
 
-        var mockBookResponse = mockedBookResponse();
-        when(bookMapperMock.toResponse(any(Book.class)))
-                .thenReturn(mockBookResponse);
+        private void setupMockSecurityContext(String email) {
+                when(securityContextMock.getAuthentication()).thenReturn(authenticationMock);
+                when(authenticationMock.isAuthenticated()).thenReturn(true);
+                when(authenticationMock.getPrincipal()).thenReturn(email);
+        }
 
-        var request = mockedBookRequest();
-        var ownerId = mockedOwnerId();
+        // BDD Style : should<R>_When<c>()
+        @Test
+        void shouldPersistBook_whenCorrectData() {
+                // Given
+                String email = "test@test.com";
+                setupMockSecurityContext(email);
 
-         // When
-        var result = bookService.createBook(request, ownerId);
+                var ownerId = mockedOwnerId();
+                var mockUser = new User();
+                mockUser.setId(ownerId);
+                when(userRepositoryMock.findByEmail(email)).thenReturn(Optional.of(mockUser));
 
-        // Then
-        assertNotNull(result);
-    }
+                var mockBook = new Book();
+                when(bookMapperMock.toEntity(any(CreateBookRequest.class))).thenReturn(mockBook);
 
-    @Test
-    void shouldThrowResourceNotFoundException_WhenOwnerIdNotExist() {
-        // Arrange
-        when(userRepositoryMock.findById(any(UUID.class)))
-                .thenReturn(Optional.empty());
+                when(bookRepositoryMock.save(any(Book.class))).thenReturn(mockBook);
 
-        var request = mockedBookRequest();
-        var ownerId = mockedOwnerId();
+                var mockBookDto = mockedBookDto();
+                when(bookMapperMock.toDto(any(Book.class)))
+                                .thenReturn(mockBookDto);
 
-        // Act & Assert
-        assertThrows(ResourceNotFoundException.class,
-                () -> bookService.createBook(request, ownerId));
-    }
+                var request = mockedCreateBookRequest();
 
-    @Test
-    void shouldThrowBadRequestException_WhenOwnerAlreadyHasTheBook() {
-        // Arrange
-        var mockedUser = new User();
-        when(userRepositoryMock.findById(any(UUID.class)))
-                .thenReturn(Optional.of(mockedUser));
+                // When
+                var result = bookService.createBook(request);
 
-        var mockedBook = new Book();
-        when(bookRepositoryMock.findByOwnerIdAndIsbn(any(UUID.class), anyString()))
-                .thenReturn(Optional.of(mockedBook));
+                // Then
+                assertNotNull(result);
+        }
 
-        var request = mockedBookRequest();
-        var ownerId = mockedOwnerId();
+        @Test
+        void shouldThrowIllegalArgumentException_WhenOwnerIdNotExist() {
+                // Arrange
+                String email = "test@test.com";
+                setupMockSecurityContext(email);
 
-        // Act & Assert
-        assertThrows(BadRequestException.class,
-                () -> bookService.createBook(request, ownerId));
-    }
+                when(userRepositoryMock.findByEmail(email))
+                                .thenReturn(Optional.empty());
 
-    @Test
-    void shouldUpdateBookStatus_WhenCorrectData() {
-        // Arrage
-        var mockedId = 1L;
-        var ownerId = mockedOwnerId();
+                var request = mockedCreateBookRequest();
 
-        var mockedOwner = new User();
-        mockedOwner.setId(ownerId);
+                // Act & Assert
+                assertThrows(IllegalArgumentException.class,
+                                () -> bookService.createBook(request));
+        }
 
-        var mockedBook = new Book();
-        mockedBook.setOwner(mockedOwner);
-        when(bookRepositoryMock.findById(mockedId))
-                .thenReturn(Optional.of(mockedBook));
+        @Test
+        void shouldThrowIllegalArgumentException_WhenOwnerAlreadyHasTheBook() {
+                // Arrange
+                String email = "test@test.com";
+                setupMockSecurityContext(email);
 
-        when(bookRepositoryMock.save(any(Book.class)))
-                .thenReturn(mockedBook);
+                var ownerId = mockedOwnerId();
+                var mockedUser = new User();
+                mockedUser.setId(ownerId);
+                when(userRepositoryMock.findByEmail(email))
+                                .thenReturn(Optional.of(mockedUser));
 
-        var response = new BookResponse(1L, "123456789", "Test Book",
-                List.of("Test Author"), "Test Description",
-                "http://test.com/test.png", BookStatus.LEIDO,
-                1, false);
-        when(bookMapperMock.toResponse(any(Book.class)))
-                .thenReturn(response);
+                var mockedBook = new Book();
+                when(bookRepositoryMock.findByOwnerIdAndIsbn(eq(ownerId), anyString()))
+                                .thenReturn(Optional.of(mockedBook));
 
-        // Act
-        var result = bookService.updateBookStatus(mockedId, BookStatus.LEIDO, ownerId);
+                var request = mockedCreateBookRequest();
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(BookStatus.LEIDO, result.status());
-    }
+                // Act & Assert
+                assertThrows(IllegalArgumentException.class,
+                                () -> bookService.createBook(request));
+        }
 
-    private CreateBookRequest mockedBookRequest() {
-        return new CreateBookRequest("123456789", "Test Book",
-                List.of("Test Author"), "Test Description",
-                "http://test.com/test.png", BookStatus.DESEADO, 1);
-    }
+        @Test
+        void shouldUpdateBookStatus_WhenCorrectData() {
+                // Arrange
+                String email = "test@test.com";
+                setupMockSecurityContext(email);
 
-    private BookSearchResponse mockedBookResponse() {
-        return new BookSearchResponse(1L, "123456789", "Test Book",
-                List.of("Test Author"), "Test Description",
-                "http://test.com/test.png", BookStatus.DESEADO,
-                1, false);
-    }
+                var ownerId = mockedOwnerId();
+                var mockedOwner = new User();
+                mockedOwner.setId(ownerId);
+                when(userRepositoryMock.findByEmail(email)).thenReturn(Optional.of(mockedOwner));
 
-    private UUID mockedOwnerId() {
-        return UUID.fromString("11111111-2222-3333-4444-555555555555");
-    }
+                var mockedId = 1L;
 
+                var mockedBook = new Book();
+                mockedBook.setOwnerId(ownerId);
+                when(bookRepositoryMock.findByIdAndOwnerId(mockedId, ownerId))
+                                .thenReturn(Optional.of(mockedBook));
 
-       
-}
+                when(bookRepositoryMock.save(any(Book.class)))
+                                .thenReturn(mockedBook);
+
+                var response = new BookDto(1L, "123456789", "Test Book",
+                                List.of("Test Author"), "Test Description",
+                                "http://test.com/test.png", BookStatus.LEIDO,
+                                1, false);
+                when(bookMapperMock.toDto(any(Book.class)))
+                                .thenReturn(response);
+
+                // Act
+                var request = new UpdateBookStatusRequest(BookStatus.LEIDO);
+                var result = bookService.updateBookStatus(mockedId, request);
+
+                // Assert
+                assertNotNull(result);
+                assertEquals(BookStatus.LEIDO, result.status());
+        }
+
+        private CreateBookRequest mockedCreateBookRequest() {
+                return new CreateBookRequest("123456789", "Test Book",
+                                List.of("Test Author"), "Test Description",
+                                "http://test.com/test.png", BookStatus.DESEADO, 1);
+        }
+
+        private BookDto mockedBookDto() {
+                return new BookDto(1L, "123456789", "Test Book",
+                                List.of("Test Author"), "Test Description",
+                                "http://test.com/test.png", BookStatus.DESEADO,
+                                1, false);
+        }
+
+        private UUID mockedOwnerId() {
+                return UUID.fromString("11111111-2222-3333-4444-555555555555");
+        }
 }
