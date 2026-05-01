@@ -52,8 +52,16 @@ public class BookServiceImplTest {
         }
 
         private void setupMockSecurityContext(String email) {
+                // "Define el comportamiento del contenedor de seguridad".
+                // "Cuando el sistema pregunte: '¿Hay alguien identificado?', responde con este
+                // objeto de autenticación"
                 when(securityContextMock.getAuthentication()).thenReturn(authenticationMock);
+
+                // "Cuando el sistema pregunte: '¿Está identificado?', responde con verdadero"
                 when(authenticationMock.isAuthenticated()).thenReturn(true);
+
+                // "Cuando el sistema pregunte: '¿Quién es el usuario?', responde con este
+                // email"
                 when(authenticationMock.getPrincipal()).thenReturn(email);
         }
 
@@ -67,14 +75,21 @@ public class BookServiceImplTest {
                 var ownerId = mockedOwnerId();
                 var mockUser = new User();
                 mockUser.setId(ownerId);
+                // "Cuando el sistema intente encontrar el usuario por email, devuelve este
+                // usuario"
                 when(userRepositoryMock.findByEmail(email)).thenReturn(Optional.of(mockUser));
 
                 var mockBook = new Book();
+                // "Cuando el sistema intente transformar el request en una entidad, devuelve
+                // esta entidad"
                 when(bookMapperMock.toEntity(any(CreateBookRequest.class))).thenReturn(mockBook);
 
+                // "Cuando el sistema intente guardar la entidad, devuelve la misma entidad"
                 when(bookRepositoryMock.save(any(Book.class))).thenReturn(mockBook);
 
                 var mockBookDto = mockedBookDto();
+                // "Cuando el sistema intente transformar la entidad en un DTO, devuelve este
+                // DTO"
                 when(bookMapperMock.toDto(any(Book.class)))
                                 .thenReturn(mockBookDto);
 
@@ -92,13 +107,15 @@ public class BookServiceImplTest {
                 // Arrange
                 String email = "test@test.com";
                 setupMockSecurityContext(email);
-
+                // "Cuando el sistema intente encontrar el usuario por email, devuelve un
+                // usuario vacio"
                 when(userRepositoryMock.findByEmail(email))
                                 .thenReturn(Optional.empty());
 
                 var request = mockedCreateBookRequest();
 
                 // Act & Assert
+                // "Cuando el sistema intente crear el libro, lanza una excepcion"
                 assertThrows(IllegalArgumentException.class,
                                 () -> bookService.createBook(request));
         }
@@ -112,10 +129,14 @@ public class BookServiceImplTest {
                 var ownerId = mockedOwnerId();
                 var mockedUser = new User();
                 mockedUser.setId(ownerId);
+                // "Cuando el sistema intente encontrar el usuario por email, devuelve este
+                // usuario"
                 when(userRepositoryMock.findByEmail(email))
                                 .thenReturn(Optional.of(mockedUser));
 
                 var mockedBook = new Book();
+                // "Cuando el sistema intente encontrar el libro por ownerId y isbn, devuelve
+                // este libro"
                 when(bookRepositoryMock.findByOwnerIdAndIsbn(eq(ownerId), anyString()))
                                 .thenReturn(Optional.of(mockedBook));
 
@@ -135,15 +156,19 @@ public class BookServiceImplTest {
                 var ownerId = mockedOwnerId();
                 var mockedOwner = new User();
                 mockedOwner.setId(ownerId);
+                // "Cuando el sistema intente encontrar el usuario por email, devuelve este
+                // usuario"
                 when(userRepositoryMock.findByEmail(email)).thenReturn(Optional.of(mockedOwner));
 
                 var mockedId = 1L;
 
                 var mockedBook = new Book();
                 mockedBook.setOwnerId(ownerId);
+                // "Cuando el sistema intente encontrar el libro por id y ownerId, devuelve
+                // este libro"
                 when(bookRepositoryMock.findByIdAndOwnerId(mockedId, ownerId))
                                 .thenReturn(Optional.of(mockedBook));
-
+                // "Cuando el sistema intente guardar la entidad, devuelve la misma entidad"
                 when(bookRepositoryMock.save(any(Book.class)))
                                 .thenReturn(mockedBook);
 
@@ -151,6 +176,8 @@ public class BookServiceImplTest {
                                 List.of("Test Author"), "Test Description",
                                 "http://test.com/test.png", BookStatus.LEIDO,
                                 1, false);
+                // "Cuando el sistema intente transformar la entidad en un DTO, devuelve este
+                // DTO"
                 when(bookMapperMock.toDto(any(Book.class)))
                                 .thenReturn(response);
 
