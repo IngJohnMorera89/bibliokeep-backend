@@ -82,10 +82,88 @@ tasks.named('test') {
     finalizedBy jacocoTestReport
 }
 
+def jacocoExcludes = [
+    '**/com/devsenior/jmorera/bibliokeep/config/**',
+    '**/com/devsenior/jmorera/bibliokeep/security/**',
+    '**/com/devsenior/jmorera/bibliokeep/exception/**',
+    '**/com/devsenior/jmorera/bibliokeep/event/**',
+    '**/com/devsenior/jmorera/bibliokeep/mapper/**',
+    '**/com/devsenior/jmorera/bibliokeep/repository/**',
+    '**/com/devsenior/jmorera/bibliokeep/model/**',
+    '**/com/devsenior/jmorera/bibliokeep/dto/**',
+    '**/com/devsenior/jmorera/bibliokeep/*Aplication*'
+]
+
 jacocoTestReport {
     dependsOn test
     reports {
         xml.required = true
         html.required = true
     }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect { 
+            fileTree(dir: it, exclude: jacocoExcludes)
+        }))
+    }
 }
+jacocoTestCoverageVerification {
+    afterEvaluate {
+        violationRules {
+            rule {
+                element = 'PACKAGE'
+                limit {
+                    counter = 'LINE'
+                    value = 'COVEREDRATIO'
+                    minimum = 0.80
+                }
+                limit {
+                    counter = 'BRANCH'
+                    value = 'COVEREDRATIO'
+                    minimum = 0.70
+                }
+               
+            }
+        }
+    }
+    violationRules {
+        rule {
+            element = 'PACKAGE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+        rule {
+            element = 'CLASS'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.70
+            }
+            excludes = [
+                'com/devsenior/jmorera/bibliokeep/config/**',
+                'com/devsenior/jmorera/bibliokeep/security/**',
+                'com/devsenior/jmorera/bibliokeep/exception/**',
+                'com/devsenior/jmorera/bibliokeep/event/**',
+                'com/devsenior/jmorera/bibliokeep/mapper/**',
+                'com/devsenior/jmorera/bibliokeep/repository/**',
+                'com/devsenior/jmorera/bibliokeep/model/**',
+                'com/devsenior/jmorera/bibliokeep/dto/**',
+                'com/devsenior/jmorera/bibliokeep/*Aplication*'
+            ]
+        }
+       
+    }
+}
+check.dependsOn jacocoTestCoverageVerification
